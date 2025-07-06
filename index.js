@@ -246,3 +246,143 @@ app.get('/api/test-ai', async (req, res) => {
     const result = await aiManager.generateContent(testPrompt, { type: 'test' });
     
     res.json({
+      success: true,
+      result: result,
+      message: 'AI test successful!'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      providers: aiManager.getProviderStatus()
+    });
+  }
+});
+
+// Generate single content piece
+app.post('/api/generate-content', async (req, res) => {
+  try {
+    const { prompt, type = 'general', provider } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const result = await aiManager.generateContent(prompt, { type, provider });
+    res.json({
+      success: true,
+      result: result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      providers: aiManager.getProviderStatus()
+    });
+  }
+});
+
+// Generate complete book
+app.post('/api/generate-book', async (req, res) => {
+  try {
+    const { title, genre, style = 'engaging', audience = 'general', chapters } = req.body;
+    
+    if (!title || !chapters) {
+      return res.status(400).json({ error: 'Title and chapters are required' });
+    }
+
+    const bookPrompt = {
+      title,
+      genre: genre || 'General',
+      style,
+      audience,
+      context: `This book titled "${title}" is a ${genre} work written in an ${style} style for a ${audience} audience.`
+    };
+
+    // Convert simple chapter list to outline format
+    const chapterOutline = chapters.map((chapterTitle, index) => ({
+      title: chapterTitle,
+      outline: `Chapter ${index + 1} should cover the main aspects of ${chapterTitle}`,
+      keyPoints: [],
+      length: '1500-2500 words'
+    }));
+
+    console.log(`Starting book generation: "${title}" with ${chapters.length} chapters`);
+    
+    const book = await aiManager.generateBook(bookPrompt, chapterOutline);
+    
+    res.json({
+      success: true,
+      book: book,
+      message: `Book "${title}" generated successfully!`
+    });
+  } catch (error) {
+    console.error('Book generation error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      providers: aiManager.getProviderStatus()
+    });
+  }
+});
+
+// Get AI provider status
+app.get('/api/ai-status', (req, res) => {
+  res.json({
+    providers: aiManager.getProviderStatus(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Enhanced API status
+app.get('/api/status', (req, res) => {
+  res.json({
+    message: 'Briggs Empire API Online',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    ai_providers: aiManager.getProviderStatus(),
+    features: {
+      ai_generation: true,
+      book_creation: true,
+      multi_provider_failover: true,
+      quality_control: true
+    }
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not found',
+    message: `Cannot ${req.method} ${req.path}`
+  });
+});
+
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🏰 Briggs Empire server running on port ${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🤖 AI Providers initialized: OpenAI, Claude, Gemini`);
+  console.log(`🚀 Ready for book generation!`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
