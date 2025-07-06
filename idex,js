@@ -1,1 +1,52 @@
+const express = require('express');
+const { PrismaClient } = require('@prisma/client');
+require('dotenv').config();
 
+const app = express();
+const prisma = new PrismaClient();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use(express.static('public'));
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    message: 'The Adventures of Briggs Empire is running!',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Dashboard API
+app.get('/api/dashboard', async (req, res) => {
+  try {
+    const totalBooks = await prisma.book.count();
+    const totalSales = await prisma.sale.count();
+    
+    res.json({
+      totalBooks,
+      totalSales,
+      message: 'Briggs Empire is ready for adventure!'
+    });
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    res.json({
+      totalBooks: 0,
+      totalSales: 0,
+      message: 'Empire starting up...'
+    });
+  }
+});
+
+app.listen(PORT, async () => {
+  console.log('🏰 The Adventures of Briggs Empire');
+  console.log(`🚂 Running on port ${PORT}`);
+  
+  try {
+    await prisma.$connect();
+    console.log('✅ Database connected');
+  } catch (error) {
+    console.error('❌ Database connection pending:', error.message);
+  }
+});
