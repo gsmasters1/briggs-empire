@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐕 The Adventures of Briggs - Empire Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff8c42 0%, #ffa726 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .header {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .header h1 {
+            color: white;
+            font-size: 3rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 0.5rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-left: 4px solid #ff6b35;
+        }
+        .stat-card h3 {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+        .stat-card .value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #ff6b35;
+            margin-bottom: 0.5rem;
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🐕 The Adventures of Briggs</h1>
+        <p style="color: rgba(255, 255, 255, 0.9); font-size: 1.2rem;">AI-Powered Publishing Empire</p>
+    </div>
+    
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>📚 Total Books</h3>
+                <div class="value" id="totalBooks">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>💰 Total Sales</h3>
+                <div class="value" id="totalSales">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>🚀 Status</h3>
+                <div class="value" style="font-size: 1.5rem;" id="status">ONLINE</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 style="color: #333; margin-bottom: 1rem;">🎉 Welcome to Briggs Empire!</h2>
+            <p>Your AI-powered children's book publishing platform is ready for adventure!</p>
+        </div>
+    </div>
+
+    <script>
+        fetch('/api/dashboard')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('totalBooks').textContent = data.totalBooks;
+                document.getElementById('totalSales').textContent = data.totalSales;
+                document.getElementById('status').textContent = 'READY';
+                document.getElementById('status').style.color = '#28a745';
+            })
+            .catch(e => {
+                document.getElementById('status').textContent = 'STARTING';
+                document.getElementById('status').style.color = '#ffc107';
+            });
+    </script>
+</body>
+</html>
