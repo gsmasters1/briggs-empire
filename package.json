@@ -1,21 +1,59 @@
 {
   "name": "briggs-empire",
   "version": "1.0.0",
-  "description": "The Adventures of Briggs - AI Publishing Empire",
+  "description": "The Briggs Empire - AI-powered book creation and management system",
   "main": "index.js",
   "scripts": {
-    "start": "npx prisma generate && npx prisma db push && node index.js",
-    "build": "npx prisma generate"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "build": "npm install && npx prisma generate",
+    "postinstall": "npx prisma generate",
+    "db:migrate": "npx prisma migrate dev",
+    "db:deploy": "npx prisma migrate deploy",
+    "db:studio": "npx prisma studio",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "ai",
+    "books",
+    "automation",
+    "briggs",
+    "empire"
+  ],
+  "author": "Briggs Empire",
+  "license": "MIT",
   "dependencies": {
-    "@prisma/client": "^5.0.0",
-    "openai": "^4.0.0",
-    "express": "^4.18.0",
+    "express": "^4.18.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.0",
-    "prisma": "^5.0.0"
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "@prisma/client": "^5.6.0",
+    "prisma": "^5.6.0",
+    "openai": "^4.24.0",
+    "axios": "^1.6.2",
+    "node-cron": "^3.0.3",
+    "uuid": "^9.0.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "express-rate-limit": "^7.1.5",
+    "compression": "^1.7.4",
+    "express-validator": "^7.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "@types/node": "^20.10.0"
   },
   "engines": {
-    "node": ">=18.0.0"
-  }
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/briggs-empire.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/briggs-empire/issues"
+  },
+  "homepage": "https://github.com/yourusername/briggs-empire#readme"
 }
