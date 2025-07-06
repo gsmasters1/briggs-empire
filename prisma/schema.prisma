@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  
+  books     Book[]
+  
+  @@map("users")
+}
+
+model Book {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  status      BookStatus @default(DRAFT)
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+  createdAt   DateTime   @default(now())
+  
+  chapters    Chapter[]
+  sales       Sale[]
+  
+  @@map("books")
+}
+
+model Chapter {
+  id        String @id @default(cuid())
+  bookId    String
+  book      Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  order     Int
+  
+  @@map("chapters")
+}
+
+model Sale {
+  id       String   @id @default(cuid())
+  bookId   String
+  book     Book     @relation(fields: [bookId], references: [id])
+  platform String
+  quantity Int
+  revenue  Float
+  saleDate DateTime @default(now())
+  
+  @@map("sales")
+}
+
+enum BookStatus {
+  DRAFT
+  WRITING
+  PUBLISHED
+}
