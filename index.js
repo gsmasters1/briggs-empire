@@ -2,19 +2,21 @@ const express = require('express');
 const path = require('path');
 require('dotenv').config();
 
+// Import our AI Provider Manager
+const { AIProviderManager } = require('./ai-providers');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize AI Manager
+const aiManager = new AIProviderManager();
 
 // Basic middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Mock AI status for testing
-const mockAIStatus = [
-  { name: 'openai', available: !!process.env.OPENAI_API_KEY, lastUsed: null },
-  { name: 'claude', available: !!process.env.CLAUDE_API_KEY, lastUsed: null },
-  { name: 'gemini', available: !!process.env.GEMINI_API_KEY, lastUsed: null }
-];
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -22,12 +24,14 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     service: 'Briggs Empire',
     timestamp: new Date().toISOString(),
-    ai_providers: mockAIStatus
+    ai_providers: aiManager.getProviderStatus()
   });
 });
 
-// Dashboard with working buttons
+// Enhanced dashboard with AI status
 app.get('/', (req, res) => {
+  const providerStatus = aiManager.getProviderStatus();
+  
   res.send(`
     <html>
       <head>
@@ -109,7 +113,6 @@ app.get('/', (req, res) => {
             font-weight: bold;
             transition: all 0.3s ease;
             cursor: pointer;
-            font-size: 16px;
           }
           .btn:hover {
             background: rgba(255,255,255,0.3);
@@ -118,11 +121,6 @@ app.get('/', (req, res) => {
           .btn-primary {
             background: linear-gradient(45deg, #4ade80, #22c55e);
             border-color: #22c55e;
-          }
-          .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
           }
           .api-endpoints {
             background: rgba(0,0,0,0.3);
@@ -138,16 +136,6 @@ app.get('/', (req, res) => {
             margin: 5px 0;
             font-size: 0.9em;
           }
-          #output {
-            background: rgba(0,0,0,0.4);
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
-            min-height: 100px;
-            font-family: 'Courier New', monospace;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-          }
         </style>
       </head>
       <body>
@@ -158,11 +146,11 @@ app.get('/', (req, res) => {
           <div class="status-grid">
             <div class="status">
               <h3>🤖 AI Providers</h3>
-              ${mockAIStatus.map(provider => `
+              ${providerStatus.map(provider => `
                 <div class="provider-status">
                   <span><strong>${provider.name.toUpperCase()}</strong></span>
                   <span class="${provider.available ? 'available' : 'unavailable'}">
-                    ${provider.available ? '✅ Configured' : '❌ Missing Key'}
+                    ${provider.available ? '✅ Available' : '🔄 Rate Limited'}
                   </span>
                 </div>
               `).join('')}
@@ -177,68 +165,69 @@ app.get('/', (req, res) => {
             </div>
             
             <div class="status">
-              <h3>🔑 Configuration</h3>
-              <p>OpenAI: ${process.env.OPENAI_API_KEY ? '✅ Ready' : '❌ Missing'}</p>
-              <p>Claude: ${process.env.CLAUDE_API_KEY ? '✅ Ready' : '❌ Missing'}</p>
-              <p>Gemini: ${process.env.GEMINI_API_KEY ? '✅ Ready' : '❌ Missing'}</p>
+              <h3>🔑 API Keys</h3>
+              <p>OpenAI: ${process.env.OPENAI_API_KEY ? '✅ Configured' : '❌ Missing'}</p>
+              <p>Claude: ${process.env.CLAUDE_API_KEY ? '✅ Configured' : '❌ Missing'}</p>
+              <p>Gemini: ${process.env.GEMINI_API_KEY ? '✅ Configured' : '❌ Missing'}</p>
             </div>
           </div>
           
           <div class="actions">
-            <button class="btn btn-primary" onclick="testConnection()">🧪 Test Connection</button>
-            <button class="btn" onclick="testAPI()">📡 Test API</button>
+            <button class="btn btn-primary" onclick="testAI()">🧪 Test AI Generation</button>
+            <button class="btn" onclick="generateBook()">📚 Generate Sample Book</button>
             <a href="/api/status" class="btn">📊 API Status</a>
             <a href="/health" class="btn">🩺 Health Check</a>
           </div>
           
-          <div id="output">Ready to test Briggs Empire functionality...</div>
-          
           <div class="api-endpoints">
             <h3>📡 Available Endpoints:</h3>
-            <div class="endpoint">GET /health - System health check</div>
-            <div class="endpoint">GET /api/status - Detailed system status</div>
-            <div class="endpoint">POST /api/test - Test endpoint functionality</div>
-            <div class="endpoint">GET /api/config - Configuration status</div>
+            <div class="endpoint">POST /api/generate-content - Generate single content piece</div>
+            <div class="endpoint">POST /api/generate-book - Generate complete book</div>
+            <div class="endpoint">GET /api/ai-status - Get AI provider status</div>
+            <div class="endpoint">GET /api/test-ai - Test AI connectivity</div>
           </div>
         </div>
         
         <script>
-          function updateOutput(message) {
-            document.getElementById('output').textContent = message;
-          }
-          
-          async function testConnection() {
+          async function testAI() {
             const btn = event.target;
             btn.textContent = '🔄 Testing...';
             btn.disabled = true;
-            updateOutput('Testing server connection...');
             
             try {
-              const response = await fetch('/health');
+              const response = await fetch('/api/test-ai');
               const result = await response.json();
-              updateOutput('Connection Test SUCCESS:\\n' + JSON.stringify(result, null, 2));
+              alert('AI Test Result: ' + JSON.stringify(result, null, 2));
             } catch (error) {
-              updateOutput('Connection Test FAILED:\\n' + error.message);
+              alert('Test failed: ' + error.message);
             } finally {
-              btn.textContent = '🧪 Test Connection';
+              btn.textContent = '🧪 Test AI Generation';
               btn.disabled = false;
             }
           }
           
-          async function testAPI() {
+          async function generateBook() {
             const btn = event.target;
-            btn.textContent = '🔄 Testing API...';
+            btn.textContent = '📖 Generating...';
             btn.disabled = true;
-            updateOutput('Testing API endpoints...');
             
             try {
-              const response = await fetch('/api/status');
+              const response = await fetch('/api/generate-book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: 'The AI Revolution',
+                  genre: 'Non-fiction',
+                  chapters: ['Introduction', 'The Rise of AI', 'Future Implications']
+                })
+              });
               const result = await response.json();
-              updateOutput('API Test SUCCESS:\\n' + JSON.stringify(result, null, 2));
+              alert('Book generated! Check console for details.');
+              console.log('Generated book:', result);
             } catch (error) {
-              updateOutput('API Test FAILED:\\n' + error.message);
+              alert('Generation failed: ' + error.message);
             } finally {
-              btn.textContent = '📡 Test API';
+              btn.textContent = '📚 Generate Sample Book';
               btn.disabled = false;
             }
           }
@@ -248,55 +237,117 @@ app.get('/', (req, res) => {
   `);
 });
 
-// API status endpoint
+// API Endpoints for AI functionality
+
+// Test AI connectivity
+app.get('/api/test-ai', async (req, res) => {
+  try {
+    const testPrompt = "Write a single paragraph about the future of AI in publishing.";
+    const result = await aiManager.generateContent(testPrompt, { type: 'test' });
+    
+    res.json({
+      success: true,
+      result: result,
+      message: 'AI test successful!'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      providers: aiManager.getProviderStatus()
+    });
+  }
+});
+
+// Generate single content piece
+app.post('/api/generate-content', async (req, res) => {
+  try {
+    const { prompt, type = 'general', provider } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    const result = await aiManager.generateContent(prompt, { type, provider });
+    res.json({
+      success: true,
+      result: result
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      providers: aiManager.getProviderStatus()
+    });
+  }
+});
+
+// Generate complete book
+app.post('/api/generate-book', async (req, res) => {
+  try {
+    const { title, genre, style = 'engaging', audience = 'general', chapters } = req.body;
+    
+    if (!title || !chapters) {
+      return res.status(400).json({ error: 'Title and chapters are required' });
+    }
+
+    const bookPrompt = {
+      title,
+      genre: genre || 'General',
+      style,
+      audience,
+      context: `This book titled "${title}" is a ${genre} work written in an ${style} style for a ${audience} audience.`
+    };
+
+    // Convert simple chapter list to outline format
+    const chapterOutline = chapters.map((chapterTitle, index) => ({
+      title: chapterTitle,
+      outline: `Chapter ${index + 1} should cover the main aspects of ${chapterTitle}`,
+      keyPoints: [],
+      length: '1500-2500 words'
+    }));
+
+    console.log(`Starting book generation: "${title}" with ${chapters.length} chapters`);
+    
+    const book = await aiManager.generateBook(bookPrompt, chapterOutline);
+    
+    res.json({
+      success: true,
+      book: book,
+      message: `Book "${title}" generated successfully!`
+    });
+  } catch (error) {
+    console.error('Book generation error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      providers: aiManager.getProviderStatus()
+    });
+  }
+});
+
+// Get AI provider status
+app.get('/api/ai-status', (req, res) => {
+  res.json({
+    providers: aiManager.getProviderStatus(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Enhanced API status
 app.get('/api/status', (req, res) => {
   res.json({
     message: 'Briggs Empire API Online',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
-    ai_providers: mockAIStatus,
-    server_info: {
-      port: PORT,
-      node_version: process.version,
-      platform: process.platform
-    },
+    ai_providers: aiManager.getProviderStatus(),
     features: {
-      basic_server: true,
-      api_endpoints: true,
-      health_checks: true,
-      ai_ready: mockAIStatus.some(p => p.available)
+      ai_generation: true,
+      book_creation: true,
+      multi_provider_failover: true,
+      quality_control: true
     }
-  });
-});
-
-// Test endpoint
-app.post('/api/test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Test endpoint working!',
-    timestamp: new Date().toISOString(),
-    received_data: req.body
-  });
-});
-
-// Configuration endpoint
-app.get('/api/config', (req, res) => {
-  res.json({
-    ai_providers: mockAIStatus,
-    environment: process.env.NODE_ENV || 'development',
-    features_available: [
-      'Health Monitoring',
-      'API Status Checking', 
-      'Configuration Validation',
-      'Error Handling'
-    ],
-    next_steps: [
-      'Add AI Provider Manager',
-      'Implement Book Generation',
-      'Connect Database',
-      'Add Authentication'
-    ]
   });
 });
 
@@ -305,8 +356,7 @@ app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong',
-    timestamp: new Date().toISOString()
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });
 });
 
@@ -314,8 +364,7 @@ app.use((err, req, res, next) => {
 app.use((req, res) => {
   res.status(404).json({
     error: 'Not found',
-    message: `Cannot ${req.method} ${req.path}`,
-    available_endpoints: ['/health', '/api/status', '/api/config', '/api/test']
+    message: `Cannot ${req.method} ${req.path}`
   });
 });
 
@@ -323,8 +372,8 @@ app.use((req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🏰 Briggs Empire server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔧 Basic functionality ready`);
-  console.log(`🚀 Dashboard available at: http://localhost:${PORT}`);
+  console.log(`🤖 AI Providers initialized: OpenAI, Claude, Gemini`);
+  console.log(`🚀 Ready for book generation!`);
 });
 
 // Graceful shutdown
