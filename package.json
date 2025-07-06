@@ -4,7 +4,7 @@
   "description": "The Adventures of Briggs - AI Publishing Empire",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "npx prisma generate && npx prisma db push && node index.js",
     "build": "npx prisma generate"
   },
   "dependencies": {
